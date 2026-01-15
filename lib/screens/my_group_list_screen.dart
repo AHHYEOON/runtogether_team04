@@ -54,38 +54,42 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 지금 뒤로 갈 수 있는 상황인지 확인 (마이페이지에서 왔으면 true, 탭이면 false)
+    bool canPop = Navigator.canPop(context);
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: Column(
-        children: [
-          // 상단 헤더
-          Container(
-            width: double.infinity,
-            color: primaryColor,
-            padding: const EdgeInsets.only(top: 60, bottom: 20),
-            alignment: Alignment.center,
-            child: const Text(
-              '내 대회 목록',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          // 리스트 영역
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: primaryColor))
-                : _myGroups.isEmpty
-                ? const Center(child: Text('참여 중인 대회가 없습니다.'))
-                : ListView.separated(
-              padding: const EdgeInsets.all(20),
-              itemCount: _myGroups.length,
-              separatorBuilder: (ctx, i) => const SizedBox(height: 16),
-              itemBuilder: (ctx, i) {
-                final group = _myGroups[i];
-                return _buildMyGroupCard(group);
-              },
-            ),
-          ),
-        ],
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          '내 대회 목록',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+
+        // ★ [핵심] 뒤로 갈 수 있을 때만 버튼 보여주기!
+        automaticallyImplyLeading: false, // 기본 자동 생성 끄고 우리가 직접 제어
+        leading: canPop
+            ? IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        )
+            : null, // 뒤로 갈 곳 없으면(탭) 아무것도 안 보여줌
+      ),
+
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          : _myGroups.isEmpty
+          ? const Center(child: Text('참여 중인 대회가 없습니다.'))
+          : ListView.separated(
+        padding: const EdgeInsets.all(20),
+        itemCount: _myGroups.length,
+        separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+        itemBuilder: (ctx, i) {
+          final group = _myGroups[i];
+          return _buildMyGroupCard(group);
+        },
       ),
     );
   }

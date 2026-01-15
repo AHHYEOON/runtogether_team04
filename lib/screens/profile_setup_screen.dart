@@ -1,14 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // image_picker 패키지
-import 'package:dio/dio.dart'; // dio 패키지
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../constants.dart';
 import 'main_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+  // 생성자: 수정 모드인지 확인할 변수와 초기값을 받을 수 있게 함
+  final bool isEditMode;
+
+  const ProfileSetupScreen({super.key, this.isEditMode = false});
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -17,23 +19,78 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nicknameController = TextEditingController();
 
-  // 기본값 설정
   String _gender = '남성';
   DateTime _birthDate = DateTime(1995, 5, 5);
 
-  File? _profileImage;
+  File? _profileImage; // 선택된 새 이미지
+  String? _serverImageUrl; // 서버에 저장된 기존 이미지 URL (수정 모드용)
+
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
-  // 갤러리에서 이미지 선택
+  @override
+  void initState() {
+    super.initState();
+    // ★ 만약 수정 모드라면, 기존 내 정보를 불러와서 채워넣어야 함!
+    if (widget.isEditMode) {
+      print("🛠️ 수정 모드로 진입! 데이터 로딩 시작"); // 로그 추가
+      _loadMyProfile();
+    }
+  }
+
+  // [수정 모드] 기존 내 정보 불러오기
+  Future<void> _loadMyProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken');
+      if (token == null) return;
+
+      final dio = Dio();
+      final options = Options(headers: {
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true',
+        'Content-Type': 'application/json',
+      });
+
+      // 마이페이지 조회 API 호출 (정보 가져오기)
+      final response = await dio.get('$baseUrl/api/v1/auth/mypage', options: options);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        setState(() {
+          _nicknameController.text = data['nickname'] ?? "";
+
+          // 성별 처리 (서버가 MALE/FEMALE로 준다고 가정)
+          String serverGender = data['gender'] ?? "MALE";
+          _gender = (serverGender == "FEMALE") ? "여성" : "남성";
+
+          // 생년월일 처리 (YYYY-MM-DD 형식 가정)
+          if (data['birthDate'] != null) {
+            try {
+              _birthDate = DateTime.parse(data['birthDate']);
+            } catch (_) {}
+          }
+
+          // 프로필 이미지 URL
+          _serverImageUrl = data['profileImage'];
+        });
+      }
+    } catch (e) {
+      print("❌ 기존 정보 로드 실패: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // 갤러리 이미지 선택
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) setState(() => _profileImage = File(image.path));
   }
 
-  // [프로필 저장 함수]
+  // [프로필 저장/수정 함수]
   void _updateProfile() async {
-    // 1. 닉네임 입력 확인
     if (_nicknameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('닉네임을 입력해주세요.')));
       return;
@@ -42,93 +99,72 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 2. 저장된 토큰 가져오기 (SharedPreferences)
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken');
 
-      print("🔑 저장된 토큰 확인: $token");
-
       if (token == null) {
-        print("❌ 토큰이 없습니다. 로그인 과정에 문제가 있었습니다.");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증 정보가 없습니다. 다시 로그인해주세요.')));
-        return; // 여기서 멈춤
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('인증 정보가 없습니다.')));
+        return;
       }
 
       final dio = Dio();
+      final options = Options(headers: {
+        'Authorization': 'Bearer $token',
+        'ngrok-skip-browser-warning': 'true',
+        'Content-Type': 'application/json',
+      });
 
-      // 3. 헤더 설정 (가장 중요!)
-      // Authorization: Bearer 토큰
-      // ngrok-skip-browser-warning: true
-      final options = Options(
-        headers: {
-          'Authorization': 'Bearer $token', // 띄어쓰기 주의
-          'ngrok-skip-browser-warning': 'true',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      // 4. 데이터 준비 (JSON)
-      // 화면엔 '남성'/'여성'이지만 서버엔 'MALE'/'FEMALE'로 보내야 함
       String serverGender = (_gender == '남성') ? 'MALE' : 'FEMALE';
       String birthDateStr = "${_birthDate.year}-${_birthDate.month.toString().padLeft(2,'0')}-${_birthDate.day.toString().padLeft(2,'0')}";
 
-      // 이미지가 없으면 null 보냄 (친구가 null 보내도 된다고 했음)
-      // 이미지가 있으면 일단 파일명만 보냄 (나중에 파일 업로드 구현 시 변경 필요)
-      String imageFileName = ""; // 기본값 빈 문자열
+      String imageFileName = "";
       if (_profileImage != null) {
         imageFileName = _profileImage!.path.split('/').last;
+      } else if (_serverImageUrl != null) {
+        // 이미지를 새로 안 골랐으면, 기존 이미지를 유지할지 여부는 서버 로직에 따름
+        // 여기서는 일단 빈 값 보내거나 처리 필요 (서버 개발자와 상의)
+        // 일단은 빈 문자열로 둠
       }
 
       final Map<String, dynamic> requestData = {
         "nickname": _nicknameController.text,
         "gender": serverGender,
         "birthDate": birthDateStr,
-
-        // ★ 여기가 수정됨: null 대신 ""(빈 문자열) 전송
         "profileImageUrl": imageFileName
       };
 
-      print("🚀 [프로필 저장 요청] URL: $profileUrl");
-      print("📦 [보내는 데이터] $requestData");
+      print("🚀 [프로필 저장 요청] 데이터: $requestData");
 
-      // 5. 서버로 전송 (PATCH)
-      final response = await dio.post(
-        profileUrl,
-        data: requestData,
-        options: options, // 위에서 만든 헤더 옵션 적용
-      );
+      // ★ 수정 모드면 PATCH, 처음이면 POST (혹은 서버 API가 하나라면 그대로 사용)
+      // 여기서는 profileUrl 하나로 통일되어 있다고 가정하고 POST 사용
+      // 만약 수정 API가 따로 있다면 분기 처리 필요
+      /* String apiUrl = widget.isEditMode ? '$baseUrl/api/v1/users/me' : profileUrl;
+      String method = widget.isEditMode ? 'PATCH' : 'POST';
+      */
 
-      print("✅ [응답 상태코드] ${response.statusCode}");
+      // 일단 기존 코드대로 POST 사용 (서버가 알아서 처리해주길 기대하거나 API 확인 필요)
+      final response = await dio.post(profileUrl, data: requestData, options: options);
 
       if (response.statusCode == 200) {
-        print("🎉 프로필 설정 완료! 메인 화면으로 이동합니다.");
+        print("🎉 저장 완료!");
         if (!mounted) return;
 
-        // 메인 화면으로 이동 (뒤로가기 못하게 stack 비우기)
-        Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MainScreen()),
-                (route) => false
-        );
-      } else {
-        print("⚠️ 성공은 아닌 것 같음 (200 아님)");
-      }
-
-    } catch (e) {
-      print("❌ [프로필 저장 실패] 에러: $e");
-      String errorMsg = "프로필 저장 중 오류가 발생했습니다.";
-
-      if(e is DioException) {
-        print("❌ 서버 응답 데이터: ${e.response?.data}");
-        if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-          errorMsg = "인증에 실패했습니다. (토큰 만료 등)";
-        } else if (e.response?.statusCode == 400) {
-          errorMsg = "입력 형식이 잘못되었습니다. (생년월일 등)";
-        } else {
-          errorMsg = "오류: ${e.response?.data}";
+        // ★ 수정 모드였다면 -> 그냥 뒤로가기 (마이페이지로 복귀)
+        if (widget.isEditMode) {
+          Navigator.pop(context);
+        }
+        // ★ 최초 설정이었다면 -> 메인 화면으로 이동 (스택 비우기)
+        else {
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+                  (route) => false
+          );
         }
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+    } catch (e) {
+      print("❌ 저장 실패: $e");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("저장 중 오류가 발생했습니다.")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -138,14 +174,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('프로필 설정'), backgroundColor: Colors.white, foregroundColor: Colors.black, elevation: 0),
+      appBar: AppBar(
+          title: Text(widget.isEditMode ? '프로필 수정' : '프로필 설정'), // 제목 변경
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- 프로필 사진 (원형) ---
+              // --- 프로필 사진 ---
               Center(
                 child: GestureDetector(
                   onTap: _pickImage,
@@ -154,8 +195,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.grey[200],
-                        backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                        child: _profileImage == null ? const Icon(Icons.person, size: 50, color: Colors.grey) : null,
+                        // 1. 새로 고른 이미지 -> 2. 기존 서버 이미지 -> 3. 기본 아이콘
+                        backgroundImage: _profileImage != null
+                            ? FileImage(_profileImage!)
+                            : (_serverImageUrl != null && _serverImageUrl!.isNotEmpty
+                            ? NetworkImage(_serverImageUrl!)
+                            : null) as ImageProvider?,
+                        child: (_profileImage == null && (_serverImageUrl == null || _serverImageUrl!.isEmpty))
+                            ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                            : null,
                       ),
                       Positioned(
                         bottom: 0, right: 0,
@@ -171,7 +219,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 30),
 
-              // --- 닉네임 입력 ---
+              // --- 닉네임 ---
               const Text('닉네임', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextField(
@@ -185,7 +233,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 24),
 
-              // --- 성별 선택 ---
+              // --- 성별 ---
               const Text('성별', style: TextStyle(fontWeight: FontWeight.bold)),
               Row(
                 children: [

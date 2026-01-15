@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:runtogether_team04/constants.dart';
 import 'package:runtogether_team04/screens/home_screen.dart';
+import 'package:runtogether_team04/screens/running_screen.dart';
+import 'package:runtogether_team04/screens/mypage_screen.dart';
 
 import 'my_group_list_screen.dart'; // 홈 화면(리스트) 가져오기
 
@@ -17,9 +19,9 @@ class _MainScreenState extends State<MainScreen> {
   // 각 탭에 보여줄 화면들
   final List<Widget> _screens = [
     const HomeScreen(),      // [0] 홈 (그룹 리스트 & 상단 버튼 있는 곳)
-    const MyGroupListScreen(), // [1]
+    const MyGroupListScreen(), // [1] 내그룹
     const Center(child: Text('러닝/지도 (개발 예정)')), // [2]
-    const Center(child: Text('마이페이지 (개발 예정)')), // [3]
+    const MyPageScreen(), // [3] 마이페이지
   ];
 
   // 탭 클릭 시 실행되는 함수

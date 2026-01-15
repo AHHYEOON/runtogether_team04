@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:runtogether_team04/screens/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../constants.dart';
+import '../../constants.dart';
 import 'main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -64,7 +64,18 @@ class _LoginScreenState extends State<LoginScreen> {
           print("🔑 토큰 획득: $token");
 
           final prefs = await SharedPreferences.getInstance();
+
+          // 1. 토큰 저장
           await prefs.setString('accessToken', token.toString());
+
+          // ★ [추가된 부분] 체크박스 상태(_keepLogin)를 'isAutoLogin'이라는 이름으로 저장!
+          if (_keepLogin) {
+            await prefs.setBool('isAutoLogin', true);
+            print("📌 로그인 상태 유지: 켜짐 (ON)");
+          } else {
+            await prefs.setBool('isAutoLogin', false);
+            print("📌 로그인 상태 유지: 꺼짐 (OFF)");
+          }
 
           if (!mounted) return;
           // 메인 화면으로 이동 (로그인 화면은 뒤로가기 안되게 제거)
