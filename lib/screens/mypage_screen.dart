@@ -374,7 +374,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const MyGroupListScreen(),
+              builder: (context) => const MyGroupListScreen(isManagementMode: true),
             ),
           );
         }
