@@ -249,11 +249,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               InkWell(
                 onTap: () async {
                   final date = await showDatePicker(
-                      context: context,
-                      initialDate: _birthDate,
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime.now()
+                    context: context,
+                    initialDate: _birthDate,
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                    // ★★★ [수정] 달력 테마 커스텀 (보라색 -> primaryColor) ★★★
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: primaryColor, // 헤더 배경색, 선택된 날짜 원 색상
+                            onPrimary: Colors.white, // 헤더 텍스트 색상
+                            onSurface: Colors.black, // 달력 숫자 색상
+                          ),
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(
+                              foregroundColor: primaryColor, // '취소', '확인' 버튼 텍스트 색상
+                            ),
+                          ),
+                          dialogBackgroundColor: Colors.white, // 배경색
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
+
                   if (date != null) setState(() => _birthDate = date);
                 },
                 child: Container(
@@ -269,8 +289,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 40),
 
               // --- 완료 버튼 ---
               SizedBox(

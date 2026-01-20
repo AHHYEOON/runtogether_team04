@@ -292,7 +292,7 @@ class _MyRecordScreenState extends State<MyRecordScreen> {
   // [4] 비교 카드
   Widget _buildComparisonCard() {
     return _buildCardLayout(
-      title: "그룹 비교 기록",
+      title: "대회 비교 기록",
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

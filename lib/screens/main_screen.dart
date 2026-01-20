@@ -3,6 +3,7 @@ import 'package:runtogether_team04/constants.dart';
 import 'package:runtogether_team04/screens/home_screen.dart';
 import 'package:runtogether_team04/screens/running_screen.dart';
 import 'package:runtogether_team04/screens/mypage_screen.dart';
+import 'package:runtogether_team04/screens/map_screen.dart';
 
 import 'my_group_list_screen.dart'; // 홈 화면(리스트) 가져오기
 
@@ -20,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),      // [0] 홈 (그룹 리스트 & 상단 버튼 있는 곳)
     const MyGroupListScreen(), // [1] 내그룹
-    const Center(child: Text('러닝/지도 (개발 예정)')), // [2]
+    const MapScreen(), // [2] 지도
     const MyPageScreen(), // [3] 마이페이지
   ];
 
@@ -47,8 +48,8 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.white,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: '내 그룹'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_run), label: '러닝'),
+          BottomNavigationBarItem(icon: Icon(Icons.group), label: '내 대회'),
+          BottomNavigationBarItem(icon: Icon(Icons.location_on), label: '지도'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이'),
         ],
       ),

@@ -22,7 +22,6 @@ class _CodeJoinScreenState extends State<CodeJoinScreen> {
   }
 
   // [API] 코드로 그룹 가입 요청
-  // [API] 코드로 그룹 가입 요청
   Future<void> _joinByCode() async {
     final code = _codeController.text.trim();
 

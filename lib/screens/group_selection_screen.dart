@@ -34,7 +34,7 @@ class GroupSelectionScreen extends StatelessWidget {
                 // 여기서 그룹 생성 화면으로 넘어갑니다!
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupCreateScreen()));
               },
-              child: const Text('대회 주최자입니다 (그룹 생성)'),
+              child: const Text('대회 주최자입니다 (대회 생성)'),
             ),
           ],
         ),

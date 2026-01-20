@@ -27,7 +27,7 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
   bool _isSecret = false;
   bool _isLoading = false;
 
-  final int _fixedCourseId = 6;
+  final int _fixedCourseId = 7;
   String _fixedCourseName = "로딩 중...";
 
   final Completer<GoogleMapController> _mapController = Completer();
@@ -187,7 +187,7 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
         "accessCode": _isSecret ? myRandomCode : null,
       };
 
-      print("🚀 그룹 생성 요청: $data");
+      print("🚀 대회 생성 요청: $data");
 
       final response = await dio.post(groupUrl, data: data, options: options);
 
@@ -250,55 +250,120 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
     }
   }
 
+  // [디자인 통일] 비공개 코드 팝업 (아이콘 위! 제목 아래!)
   void _showInviteCodeDialog(String code) {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text("비공개 대회 생성 완료", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("아래 입장 코드를 참가자들에게 공유하세요."),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // ★ 생성된 숫자 코드 표시
-                    Text(code, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      icon: const Icon(Icons.copy, color: primaryColor),
+      barrierDismissible: false, // 바깥 눌러서 닫기 금지
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+
+        // 1. 아이콘 (체크 아이콘) - 주황색 배경
+        icon: Container(
+          margin: const EdgeInsets.only(top: 10),
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_circle_rounded, size: 48, color: primaryColor),
+        ),
+
+        // 2. 제목
+        title: const Text(
+          "비공개 대회 생성 완료",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          textAlign: TextAlign.center,
+        ),
+
+        // 3. 내용 (코드 박스 및 안내)
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "아래 입장 코드를 참가자들에게 공유하세요.",
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+
+            // 코드 박스
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F6F8), // 부드러운 회색 배경
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // 코드 텍스트 (가운데 정렬)
+                  Expanded(
+                    child: SelectableText( // 복사하기 쉽게 선택 가능
+                      code,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  // 복사 아이콘 버튼
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: IconButton(
+                      iconSize: 20,
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.content_copy_rounded, color: primaryColor),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: code));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("코드가 복사되었습니다!")));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("코드가 복사되었습니다!")),
+                        );
                       },
-                    )
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              const Text("※ 이 코드는 대회 상세 페이지에서도\n확인할 수 있습니다.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pop(context);
-              },
-              child: const Text("확인", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
-            )
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "※ 이 코드는 대회 상세 페이지에서도\n확인할 수 있습니다.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+            ),
           ],
-        );
-      },
+        ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(ctx); // 팝업 닫기
+                Navigator.pop(context); // 생성 화면 닫기 (목록으로)
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text("확인", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

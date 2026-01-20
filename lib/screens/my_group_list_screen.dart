@@ -90,7 +90,7 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
 
       // 1. 방장이면 -> 그룹 삭제 API
       if (isOwner) {
-        print("👑 방장이므로 그룹을 삭제합니다. ID: $groupId");
+        print("👑 방장이므로 대회을 삭제합니다. ID: $groupId");
         response = await dio.delete(
           '$baseUrl/api/v1/groups/$groupId',
           options: Options(headers: {
@@ -101,7 +101,7 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
       }
       // 2. 일반 멤버면 -> 그룹 나가기 API
       else {
-        print("🏃 멤버이므로 그룹에서 나갑니다. ID: $groupId");
+        print("🏃 멤버이므로 대회에서 나갑니다. ID: $groupId");
         response = await dio.delete(
           '$baseUrl/api/v1/groups/$groupId/leave',
           options: Options(headers: {
@@ -139,31 +139,81 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
     }
   }
 
-  // [UI] 삭제 확인 다이얼로그
+  // [디자인 수정] 삭제/나가기 확인 팝업 (아이콘 위! 제목 아래!)
   void _showLeaveDialog(int groupId, int index, String groupName, bool isOwner) {
-    String title = isOwner ? "대회 삭제 (방장)" : "대회 참가 취소";
-    String content = isOwner
-        ? "정말로 대회를 삭제하시겠습니까?\n모든 참가자의 기록이 영구적으로 삭제됩니다."
-        : "'$groupName' 목록에서 삭제하시겠습니까?";
+    String title = isOwner ? "대회 삭제" : "대회 탈퇴";
+    String contentText = isOwner
+        ? "'$groupName' 대회를 삭제하시겠습니까?\n모든 참가자의 기록이 영구적으로 삭제됩니다."
+        : "'$groupName' 대회를 나가시겠습니까?";
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
+        // ★ 1. 아이콘을 맨 위로! (icon 속성을 쓰면 무조건 맨 위에 뜹니다)
+        icon: Container(
+          margin: const EdgeInsets.only(top: 8),
+          width: 70, height: 70, // 크기 지정으로 정가운데 정렬
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.warning_rounded, size: 36, color: Colors.redAccent),
+        ),
+
+        // ★ 2. 제목을 아이콘 아래로!
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          textAlign: TextAlign.center,
+        ),
+
+        // ★ 3. 설명 글을 맨 아래로!
+        content: Text(
+          contentText,
+          style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.black87),
+          textAlign: TextAlign.center,
+        ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("취소", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // 선택에 따라 API 호출
-              _leaveGroup(groupId, index, isOwner);
-            },
-            child: const Text("삭제", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
+          Row(
+            children: [
+              // 취소 버튼
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("취소", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 확인 버튼
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _leaveGroup(groupId, index, isOwner);
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                      isOwner ? "삭제" : "탈퇴",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                  ),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
@@ -218,17 +268,17 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
 
     String groupName = group['groupName'] ?? '제목 없음';
     String description = group['description'] ?? '설명이 없습니다.';
-    int count = group['currentCount'] ?? 0;
 
-    // ★ [수정됨] 키 값을 'owner' -> 'isOwner'로 변경 (DTO 필드명과 일치시킴)
+    // 인원수 파싱 (currentPeople 사용)
+    int count = group['currentPeople'] ?? 0;
+
+    // ★ 방장 여부 확인
     bool isOwner = group['isOwner'] == true;
-
-    // (만약 서버가 여전히 'owner'로 보낸다면 group['owner']도 체크)
     if (group['isOwner'] == null && group['owner'] != null) {
       isOwner = group['owner'] == true;
     }
 
-    print("🧐 그룹: ${group['groupName']} / 방장 여부: $isOwner"); // 디버깅용 로그
+    print("🧐 대회: $groupName / 방장 여부: $isOwner");
 
     List<String> tags = [];
     if (group['tags'] != null) {
@@ -237,7 +287,6 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
 
     return GestureDetector(
       onTap: () {
-        // 관리 모드가 아닐 때만 상세 화면으로 이동
         if (!isManager && finalId != 0) {
           Navigator.push(
             context,
@@ -276,7 +325,7 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
                 ),
 
                 if (isManager)
-                // 1. 관리 모드 (삭제 버튼)
+                // 1. 관리 모드 (삭제/탈퇴 버튼)
                   OutlinedButton(
                     onPressed: () => _showLeaveDialog(finalId, index, groupName, isOwner),
                     style: OutlinedButton.styleFrom(
@@ -286,7 +335,11 @@ class _MyGroupListScreenState extends State<MyGroupListScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text("삭제", style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                    // ★ [수정됨] 방장은 '삭제', 참가자는 '탈퇴'
+                    child: Text(
+                        isOwner ? "삭제" : "탈퇴",
+                        style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)
+                    ),
                   )
                 else
                 // 2. 일반 모드 (입장 버튼)

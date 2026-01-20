@@ -124,25 +124,152 @@ class _MyPageScreenState extends State<MyPageScreen> {
     }
   }
 
-  // ★★★ [4] 탈퇴 확인 팝업 UI ★★★
+  // ★★★ [4] 탈퇴 확인 팝업 (아이콘 위! 제목 아래!) ★★★
   void _showDeleteDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("회원탈퇴"),
-        content: const Text("정말로 탈퇴하시겠습니까?\n모든 러닝 기록과 대회 참가 내역이 영구적으로 삭제됩니다."),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
+        // 1. 아이콘 (맨 위) - 빨간색 배경
+        icon: Container(
+          margin: const EdgeInsets.only(top: 10),
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1), // 연한 빨강 배경
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.warning_amber_rounded, size: 40, color: Colors.redAccent),
+        ),
+
+        // 2. 제목 (아이콘 아래)
+        title: const Text(
+          "회원탈퇴",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          textAlign: TextAlign.center,
+        ),
+
+        // 3. 내용 (맨 아래)
+        content: Text(
+          "정말로 탈퇴하시겠습니까?\n모든 러닝 기록과 대회 참가 내역이\n영구적으로 삭제됩니다.",
+          style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.4),
+          textAlign: TextAlign.center,
+        ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx), // 취소
-            child: const Text("취소", style: TextStyle(color: Colors.grey)),
+          Row(
+            children: [
+              // 취소 버튼
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text("취소", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 탈퇴하기 버튼 (빨간색)
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _deleteAccount();
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text("탈퇴", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  // ★★★ [5] 로그아웃 확인 팝업 (아이콘 위! 제목 아래!) ★★★
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
+        // 1. 아이콘 (맨 위) - 주황색 배경
+        icon: Container(
+          margin: const EdgeInsets.only(top: 10),
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: primaryColor.withOpacity(0.1), // 연한 주황 배경
+            shape: BoxShape.circle,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx); // 팝업 닫고
-              _deleteAccount();   // 진짜 탈퇴 실행
-            },
-            child: const Text("탈퇴하기", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
+          child: const Icon(Icons.logout_rounded, size: 40, color: primaryColor),
+        ),
+
+        // 2. 제목 (아이콘 아래)
+        title: const Text(
+          "로그아웃",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          textAlign: TextAlign.center,
+        ),
+
+        // 3. 내용 (맨 아래)
+        content: const Text(
+          "정말 로그아웃 하시겠습니까?",
+          style: TextStyle(fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+
+        actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+        actions: [
+          Row(
+            children: [
+              // 취소 버튼
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text("취소", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // 로그아웃 버튼 (주황색)
+              Expanded(
+                child: TextButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.clear();
+                    if (!mounted) return;
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (route) => false,
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text("로그아웃", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
@@ -260,35 +387,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
           // 로그아웃 버튼
           OutlinedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text("로그아웃"),
-                  content: const Text("정말 로그아웃 하시겠습니까?"),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text("취소", style: TextStyle(color: Colors.grey)),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.clear();
-                        if (!mounted) return;
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                              (route) => false,
-                        );
-                      },
-                      child: const Text("로그아웃", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              );
-            },
+            onPressed: _showLogoutDialog, // ★ 여기를 이렇게 딱 한 줄로 바꾸면 끝!
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.grey),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
