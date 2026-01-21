@@ -342,19 +342,28 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   // [위젯 1] 프로필 영역 (로그아웃 버튼 포함)
   Widget _buildProfileSection() {
+    // 1. 주소 및 슬래시 중복 해결
+    String cleanBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    String cleanPath = _profileImage.startsWith('/') ? _profileImage : '/$_profileImage';
+    String finalImageUrl = "$cleanBase$cleanPath";
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          // 프로필 이미지
           Container(
-            width: 70, height: 70,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.grey[300]!),
               image: DecorationImage(
                 image: _profileImage.isNotEmpty
-                    ? NetworkImage(_profileImage)
+                    ? NetworkImage(
+                  finalImageUrl,
+                  // ★ ngrok 경고창을 통과하기 위한 헤더 추가
+                  headers: {'ngrok-skip-browser-warning': 'true'},
+                )
                     : const AssetImage('assets/images/character.png') as ImageProvider,
                 fit: BoxFit.cover,
               ),
@@ -387,7 +396,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
           // 로그아웃 버튼
           OutlinedButton(
-            onPressed: _showLogoutDialog, // ★ 여기를 이렇게 딱 한 줄로 바꾸면 끝!
+            onPressed: _showLogoutDialog,
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.grey),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

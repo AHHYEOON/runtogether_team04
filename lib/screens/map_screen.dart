@@ -81,7 +81,7 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       // 상단 앱바
       appBar: AppBar(
-        title: const Text("러닝 맵", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("러닝 맵", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
         centerTitle: true,
         backgroundColor: primaryColor,
         elevation: 0,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // ★ 날짜 포맷을 위해 추가
+import 'package:intl/intl.dart';
 import 'package:runtogether_team04/constants.dart';
 import 'package:runtogether_team04/screens/running_screen.dart';
 import 'package:runtogether_team04/screens/my_record_screen.dart';
@@ -28,7 +28,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
 
   Map<String, dynamic>? _groupDetail;
   Map<String, dynamic>? _courseDetail;
-  String _myNickname = "러너";
+  String _myNickname = "러너"; // 기본 닉네임
 
   bool _isLoading = true;
 
@@ -37,7 +37,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchGroupDetail();
-    _fetchUserInfo();
+    _fetchUserInfo(); // 내 정보(닉네임) 불러오기
   }
 
   // [API] 내 정보(닉네임) 조회
@@ -104,7 +104,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
       if (response.statusCode == 200) {
         if (mounted) {
           final data = response.data;
-          // data가 Map 형태가 아니라면 data['data'] 확인
           final realData = (data is Map && data.containsKey('data')) ? data['data'] : data;
 
           setState(() {
@@ -113,11 +112,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
 
           print("📥 그룹 데이터 수신: $realData");
 
-          // ★ 코스 ID 찾기 (여러 변수명 대응)
           var cId = realData['courseId'] ?? realData['course_id'];
           if (cId != null) {
             int courseId = int.parse(cId.toString());
-            _fetchCourseDetail(courseId); // 코스 정보 가져오기
+            _fetchCourseDetail(courseId);
           } else {
             setState(() => _isLoading = false);
           }
@@ -161,18 +159,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     super.dispose();
   }
 
-  // D-Day 계산 함수
   String _calculateDDay(String? startDateStr) {
     if (startDateStr == null || startDateStr.isEmpty) return "준비중";
     try {
       DateTime start = DateTime.parse(startDateStr);
       DateTime now = DateTime.now();
-      // 시간 제거하고 날짜만 비교
       DateTime dateStart = DateTime(start.year, start.month, start.day);
       DateTime dateNow = DateTime(now.year, now.month, now.day);
-
       int diff = dateStart.difference(dateNow).inDays;
-
       if (diff == 0) return "D-Day";
       if (diff > 0) return "D-$diff";
       return "D+${diff.abs()}";
@@ -230,7 +224,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
   Widget _buildMainTab() {
     if (_groupDetail == null && _courseDetail == null) return const Center(child: Text("정보를 불러오지 못했습니다."));
 
-    // 1. 코스 이름 결정
     String courseName = "코스 미정";
     if (_courseDetail != null) {
       courseName = _courseDetail!['title'] ?? _courseDetail!['courseName'] ?? "코스 미정";
@@ -238,42 +231,31 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
       courseName = _groupDetail!['courseName'] ?? "코스 미정";
     }
 
-    // 2. 날짜 정보 결정
     String startDate = "날짜 미정";
     String endDate = "";
-
-    // ★ [수정됨] 그룹(_groupDetail)에 날짜가 있으면 그걸 먼저 씁니다!
     if (_groupDetail != null && _groupDetail!['startDate'] != null) {
       startDate = _groupDetail!['startDate'];
       endDate = _groupDetail!['endDate'] ?? "";
-    }
-    // 그룹에 날짜가 없으면 그때 코스 정보를 봅니다.
-    else if (_courseDetail != null) {
+    } else if (_courseDetail != null) {
       startDate = _courseDetail!['startDate'] ?? "날짜 미정";
       endDate = _courseDetail!['endDate'] ?? "";
     }
 
-    // 3. D-Day 직접 계산
     String dDayStr = _calculateDDay(startDate == "날짜 미정" ? null : startDate);
-
-    // 설명
     String description = "";
     if (_groupDetail != null) description = _groupDetail!['description'] ?? "";
 
-    // 방장 확인 & 코드 확인
     bool isOwner = false;
     String? accessCode;
     if (_groupDetail != null) {
       isOwner = _groupDetail!['owner'] == true;
       accessCode = _groupDetail!['accessCode'] ?? _groupDetail!['inviteCode'];
     }
-    // 코드가 있고 비어있지 않아야 비밀방 로직 수행
     bool isHostAndSecret = (isOwner && accessCode != null && accessCode.toString().isNotEmpty);
 
     return SingleChildScrollView(
       child: Column(
         children: [
-          // 1. 코스 정보 카드
           Container(
             margin: const EdgeInsets.all(20),
             padding: const EdgeInsets.all(20),
@@ -291,7 +273,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 코스 이름
                           RichText(
                             text: TextSpan(
                               children: [
@@ -301,7 +282,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                             ),
                           ),
                           const SizedBox(height: 6),
-                          // 기간
                           RichText(
                             text: TextSpan(
                               children: [
@@ -320,8 +300,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                     Text(dDayStr, style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
-
-                // 방장에게만 보이는 초대 코드
                 if (isHostAndSecret) ...[
                   const SizedBox(height: 15),
                   const Divider(),
@@ -345,7 +323,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                         ),
                         InkWell(
                           onTap: () {
-                            // ★ [수정됨] accessCode 뒤에 ?? "" 추가하여 에러 해결!
                             Clipboard.setData(ClipboardData(text: accessCode ?? ""));
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("코드가 복사되었습니다!")));
                           },
@@ -365,7 +342,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
 
           const SizedBox(height: 20),
 
-          // 2. 캐릭터 영역 (닉네임 표시)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Row(
@@ -388,7 +364,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                   },
                 ),
 
-                // 닉네임
+                // ★ [수정됨] 서버에서 불러온 닉네임 표시
                 Text(_myNickname, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
                 const SizedBox(width: 80),
@@ -398,8 +374,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
 
           const SizedBox(height: 30),
 
-          // 이미지 표시
-          _buildSafeImage(),
+          // ★ [수정됨] 캐릭터 이미지 표시 함수 호출
+          _buildCharacterImage(),
 
           const SizedBox(height: 20),
           const Text("준비되셨나요?", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
@@ -419,7 +395,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
 
           const SizedBox(height: 40),
 
-          // 3. START 버튼
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
             child: Row(
@@ -470,18 +445,17 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     );
   }
 
-  Widget _buildSafeImage() {
-    if (_groupDetail == null) return _buildFallbackIcon();
-    String? imageUrl = _groupDetail!['imageUrl'];
-    if (imageUrl == null || imageUrl.isEmpty || imageUrl.contains("default.png")) {
-      return _buildFallbackIcon();
-    }
-    return Image.network(
-      imageUrl,
+  // ★ [추가됨] 캐릭터 이미지 빌드 함수
+  Widget _buildCharacterImage() {
+    // assets/images/character.png 파일이 있어야 합니다.
+    // 없다면 _buildFallbackIcon()이 호출됩니다.
+    return Image.asset(
+      'assets/images/character1.png',
       width: 220,
       height: 220,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
+        // 이미지 로드 실패 시 (파일이 없거나 경로가 틀렸을 때)
         return _buildFallbackIcon();
       },
     );

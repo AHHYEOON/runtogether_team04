@@ -27,7 +27,7 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
   bool _isSecret = false;
   bool _isLoading = false;
 
-  final int _fixedCourseId = 7;
+  final int _fixedCourseId = 10;
   String _fixedCourseName = "로딩 중...";
 
   final Completer<GoogleMapController> _mapController = Completer();
